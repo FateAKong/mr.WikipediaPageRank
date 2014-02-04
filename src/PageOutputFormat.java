@@ -21,7 +21,7 @@ public class PageOutputFormat extends FileOutputFormat<Text, PageWritable> {
     @Override
     public RecordWriter<Text, PageWritable> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
 //        Path file = FileOutputFormat.getOutputPath(taskAttemptContext);
-        Path file = getDefaultWorkFile(taskAttemptContext, ".txt");
+        Path file = getDefaultWorkFile(taskAttemptContext, "");
         FileSystem fs = file.getFileSystem(taskAttemptContext.getConfiguration());
         FSDataOutputStream dos = fs.create(file, taskAttemptContext);
         return new PageRecordWriter(dos);
@@ -41,15 +41,15 @@ public class PageOutputFormat extends FileOutputFormat<Text, PageWritable> {
             // add a leading dummy symbol to work around with utf-8 encoding problems
             // so that leading invalid chars before the page (node) id/url could be avoided
             // transforming from text.toString() rather that text.write(dos) might result in problems
-            String line = "###\t" + text.toString() + ' ' + Double.toString(pageWritable.getRank());
-            ArrayList<Text> outlinks = pageWritable.getOutlinks();
-            if (outlinks != null) { // sinks have no outlinks but only rank value
-                for (Text outlink : outlinks) {
-                    line += ' ' + outlink.toString();
+            String line = text.toString() + '\t' + String.format("%.4f", pageWritable.getRank());
+            ArrayList<Text> outLinks = pageWritable.getOutLinks();
+            if (outLinks != null) { // sinks have no outLinks but only rank value
+                for (Text outLink : outLinks) {
+                    line += ' ' + outLink.toString();
                 }
             }
             line += '\n';
-            dos.writeUTF(line);
+            dos.write(line.getBytes("UTF-8"));
         }
 
         @Override

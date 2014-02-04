@@ -19,15 +19,16 @@ import java.io.IOException;
 public class RankFinalizer {
 
     private static final double DAMPING_FACTOR = 0.85;
-    private static final String sinkPath = "s3n://fate.akong/tmp/sink";
     private Job job = null;
     private static double prevAvgSinkRank;
 
-    public Configuration getConfig() {
-        return job.getConfiguration();
+    public Job getJob() {
+        return job;
     }
 
-    public RankFinalizer(String input, String output, String property) throws IOException, InterruptedException, ClassNotFoundException {
+    public RankFinalizer(String input, String output, double prevAvgSinkRank) throws IOException, InterruptedException, ClassNotFoundException {
+        RankFinalizer.prevAvgSinkRank = prevAvgSinkRank;
+
         Configuration config = new Configuration();
         job = new Job(config, "RankFinalizer");
 
@@ -56,22 +57,13 @@ public class RankFinalizer {
         if (fs.exists(outputPath)) {
             fs.delete(outputPath, true);
         }
-        // read in graph properties
-        FSDataInputStream inputStream = null;
-        inputStream = fs.open(new Path(property));
-        String properties = inputStream.readUTF();
-        inputStream.close();
-        int nPages = Integer.parseInt(properties.substring(2));
-        inputStream = fs.open(new Path(sinkPath));
-        prevAvgSinkRank = inputStream.readDouble()/nPages;
-        inputStream.close();
     }
 
     private static class Map extends Mapper<Text, PageWritable, Text, PageWritable> {
         @Override
         protected void map(Text key, PageWritable value, Context context) throws IOException, InterruptedException {
             double rank = 1 - DAMPING_FACTOR + DAMPING_FACTOR * (value.getRank()+prevAvgSinkRank);
-            context.write(key, new PageWritable(rank, value.getOutlinks()));
+            context.write(key, new PageWritable(rank, value.getOutLinks()));
         }
     }
 

@@ -1,5 +1,4 @@
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -22,11 +21,10 @@ import java.util.ArrayList;
  */
 public class RankCalculator {
 
-    private static final String sinkPath = "s3n://fate.akong/tmp/sink";
     private Job job = null;
 
-    public Configuration getConfig() {
-        return job.getConfiguration();
+    public Job getJob() {
+        return job;
     }
 
     public RankCalculator(String input, String output) throws IOException, InterruptedException, ClassNotFoundException {
@@ -47,8 +45,6 @@ public class RankCalculator {
 
         job.setInputFormatClass(PageInputFormat.class);
         job.setOutputFormatClass(PageOutputFormat.class);
-//        job.setInputFormatClass(KeyValueTextInputFormat.class);
-//        job.setOutputFormatClass(TextOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(input));
         Path outputPath = new Path(output);
@@ -64,14 +60,15 @@ public class RankCalculator {
         @Override
         protected void map(Text key, PageWritable value, Context context) throws IOException, InterruptedException {
             double rank = value.getRank();
-            ArrayList<Text> outLinks = value.getOutlinks();
+            ArrayList<Text> outLinks = value.getOutLinks();
+            context.write(new Text("#sum"), new RankCalcWritable(rank));
             if (outLinks.size() > 0) {
                 rank = rank / outLinks.size();
                 for (Text outLink : outLinks) {
                     context.write(outLink, new RankCalcWritable(rank));
                 }
             } else {    // sink rank
-                context.write(new Text(":|sink|:"), new RankCalcWritable(rank));
+                context.write(new Text("#sink"), new RankCalcWritable(rank));
             }
             context.write(key, new RankCalcWritable(value));
         }
@@ -81,28 +78,27 @@ public class RankCalculator {
 
         @Override
         protected void reduce(Text key, Iterable<RankCalcWritable> values, Context context) throws IOException, InterruptedException {
-            if (key.toString().equals(":|sink|:")) {
 
-            } else {
-                double rank = 0;
-                ArrayList<Text> outLinks = null;
-                for (RankCalcWritable value : values) {
-                    if (value.isRankOrPage) {
-                        rank += value.rank;
-                    } else {
-                        outLinks = value.page.getOutlinks();
-                    }
-                }
-                if (key.toString().equals(":|sink|:")) {
-                    FSDataOutputStream outputStream = FileSystem.get(context.getConfiguration()).create(new Path(sinkPath));
-                    outputStream.writeDouble(rank);
-                    outputStream.close();
+            double rank = 0;
+            ArrayList<Text> outLinks = null;
+            for (RankCalcWritable value : values) {
+                if (value.isRankOrPage) {
+                    rank += value.rank;
                 } else {
-                    if (rank != 0 || outLinks != null) {
-                        context.write(key, new PageWritable(rank, outLinks));
-                    } else {
-                        throw new NullPointerException("intermediate pairs missing");
-                    }
+                    outLinks = value.page.getOutLinks();
+                }
+            }
+            String key_str = key.toString();
+            if (key_str.equals("#sink") || key_str.equals("#sum")) {
+                FSDataOutputStream outputStream = FileSystem.get(context.getConfiguration()).create(new Path("tmp/" + key_str.substring(1)));
+                outputStream.writeDouble(rank);
+                outputStream.close();
+                System.out.println(rank + key_str);
+            } else {
+                if (rank != 0 || outLinks != null) {
+                    context.write(key, new PageWritable(rank, outLinks));
+                } else {
+                    throw new NullPointerException("intermediate pairs missing");
                 }
             }
         }

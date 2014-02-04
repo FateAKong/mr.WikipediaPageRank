@@ -1,5 +1,14 @@
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.JobControl;
+
+import javax.naming.ldap.Control;
+import javax.print.attribute.standard.NumberOfInterveningJobs;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 /**
  * Created with IntelliJ IDEA.
@@ -9,55 +18,27 @@ import org.apache.hadoop.mapreduce.lib.jobcontrol.JobControl;
  */
 public class PageRank {
     public static void main(String[] args) throws Exception {
-        JobControl control = new JobControl("PageRank");
-        JobController controller = new JobController(control);
+        new RankInitializer("input", "results/PageRank.iter0.out_").getJob().waitForCompletion(false);
 
-        InLinkGraphGenerator in = new InLinkGraphGenerator("input", "output");
-        ControlledJob inJob = new ControlledJob(in.getConfig());
-        control.addJob(inJob);
-        Thread t = new Thread(controller);
-        t.start();
-        while (!control.allFinished()) {
-            System.out.println("running ");
-            Thread.sleep(5000);
+        PropertyAnalyzer analyzer = new PropertyAnalyzer("results/PageRank.iter0.out_", "results/PageRank.n.out");
+        analyzer.getJob().waitForCompletion(false);
+
+        FileSystem fs = FileSystem.get(analyzer.getJob().getConfiguration());
+        // read in graph properties
+        Scanner scanner = new Scanner(fs.open(new Path("results/PageRank.n.out/part-r-00000")));
+        int nPages = Integer.parseInt(scanner.nextLine().substring(2));
+        System.out.println("total pages: " + nPages);
+        scanner.close();
+
+        for (int i = 0; i < 2; i++) {
+            new RankCalculator("results/PageRank.iter"+i+".out_", "results/PageRank.iter"+(i+1)+".out").getJob().waitForCompletion(false);
+            FSDataInputStream inputStream = fs.open(new Path("tmp/sink"));
+            double prevSinkRank = inputStream.readDouble();
+            System.out.println("missing rank mass: " + prevSinkRank);
+            inputStream.close();
+            new RankFinalizer("results/PageRank.iter"+(i+1)+".out", "results/PageRank.iter"+(i+1)+".out_", prevSinkRank/nPages).getJob().waitForCompletion(false);
         }
         System.out.println("end");
-
-//        GraphPropertyAnalyzer fp = new GraphPropertyAnalyzer(args[0], args[1]+"/0");
-//        ControlledJob fpjob = new ControlledJob(fp.getConfig());
-//        int iIter = 0;
-//        do {
-//            System.out.println("begin iteration #"+iIter);
-//            RankCalculator rc = new RankCalculator(args[1]+"/"+Integer.toString(iIter), args[1]+"/"+Integer.toString(iIter+1));
-//            ControlledJob rcjob = new ControlledJob(rc.getConfig());
-//            isConverged = true;
-//            if (iIter==0) {
-//                rcjob.addDependingJob(fpjob);
-//                control.addJob(rcjob);
-//                control.addJob(fpjob);
-//            } else {
-//                control.addJob(rcjob);
-//            }
-//            Thread t = new Thread(controller);
-//            t.start();
-//            while (!control.allFinished()) {
-//                System.out.println("running iteration #"+iIter);
-//                Thread.sleep(5000);
-//            }
-//            System.out.println("end iteration #"+iIter);
-//            iIter++;
-//        } while (!isConverged);
-//
-//        RankSorter rs = new RankSorter(args[1]+"/"+Integer.toString(iIter), args[2]);
-//        ControlledJob rsjob = new ControlledJob(rs.getConfig());
-//        control.addJob(rsjob);
-//        Thread t = new Thread(controller);
-//        t.start();
-//        while (!control.allFinished()) {
-//            System.out.println("sorting");
-//            Thread.sleep(5000);
-//        }
-//        System.out.println("num of iterations: "+iIter);
         System.exit(0);
     }
 }

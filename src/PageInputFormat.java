@@ -41,13 +41,13 @@ public class PageInputFormat extends FileInputFormat<Text, PageWritable> {
                 Text lineValue = lineReader.getCurrentValue();
                 // uft-8 encoding may go wrong here because of toString() of the entire line just read
                 String[] pieces = lineValue.toString().split("\\s");
-                if (pieces.length >= 3) {
-                    ArrayList<Text> outlinks = new ArrayList<Text>();
-                    for (int i = 3; i<pieces.length; i++) {
-                        outlinks.add(new Text(pieces[i].trim()));
+                if (pieces.length >= 2) {
+                    ArrayList<Text> outLinks = new ArrayList<Text>();
+                    for (int i = 2; i<pieces.length; i++) {
+                        outLinks.add(new Text(pieces[i].trim()));
                     }
-                    currentKey = new Text(pieces[1]);
-                    currentValue = new PageWritable(Double.parseDouble(pieces[2]), outlinks);
+                    currentKey = new Text(pieces[0]);
+                    currentValue = new PageWritable(Double.parseDouble(pieces[1]), outLinks);
                     return true;
                 } else {
                     throw new IOException("incorrect file format");

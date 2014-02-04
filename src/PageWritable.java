@@ -16,42 +16,42 @@ import java.util.ArrayList;
 public class PageWritable implements Writable {   // used as value class of Mapper input and Reducer output
 
     private double rank = 0;
-    private ArrayList<Text> outlinks = null;
+    private ArrayList<Text> outLinks = null;
 
     public  PageWritable() {
-        outlinks = new ArrayList<Text>();
+        outLinks = new ArrayList<Text>();
     }
 
-    public PageWritable(double rank, ArrayList<Text> outlinks) {
+    public PageWritable(double rank, ArrayList<Text> outLinks) {
         this.rank = rank;
-        this.outlinks = outlinks;
+        this.outLinks = outLinks;
     }
 
     @Override
     public String toString() {
         return "PageWritable{" +
                 "rank=" + rank +
-                ", outlinks=" + outlinks +
+                ", outLinks=" + outLinks +
                 '}';
     }
 
     @Override
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeDouble(rank);
-        dataOutput.writeInt(outlinks.size());
-        for(Text outlink: outlinks) {
-            outlink.write(dataOutput);
+        dataOutput.writeInt(outLinks.size());
+        for(Text outLink: outLinks) {
+            outLink.write(dataOutput);
         }
     }
 
     @Override
     public void readFields(DataInput dataInput) throws IOException {
         rank = dataInput.readDouble();
-        int nOutlinks = dataInput.readInt();
-        while (nOutlinks-->0) {
-            Text outlink = new Text();
-            outlink.readFields(dataInput);
-            outlinks.add(outlink);
+        int nOutLinks = dataInput.readInt();
+        while (nOutLinks-->0) {
+            Text outLink = new Text();
+            outLink.readFields(dataInput);
+            outLinks.add(outLink);
         }
 //        System.out.println("PWr#"+this);
     }
@@ -60,7 +60,7 @@ public class PageWritable implements Writable {   // used as value class of Mapp
         return rank;
     }
 
-    public ArrayList<Text> getOutlinks() {
-        return outlinks;
+    public ArrayList<Text> getOutLinks() {
+        return outLinks;
     }
 }

@@ -2,6 +2,8 @@ out
 input
 output
 temp
+tmp
+results
 stat
 lib
 *.iml
