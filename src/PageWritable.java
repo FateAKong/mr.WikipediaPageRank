@@ -60,7 +60,7 @@ public class PageWritable implements Writable {   // used as value class of Mapp
         return rank;
     }
 
-    public ArrayList<Text> getOutLinks() {
+    public ArrayList<Text> getOutlinks() {
         return outLinks;
     }
 }

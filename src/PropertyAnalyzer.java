@@ -9,6 +9,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
@@ -21,10 +23,7 @@ import java.io.StringReader;
 import java.util.HashSet;
 
 /**
- * Created with IntelliJ IDEA.
- * User: FateAKong
- * Date: 10/20/13
- * Time: 4:08 PM
+ * Analyze outlink graph and generate properties like
  */
 public class PropertyAnalyzer {
 
@@ -49,7 +48,7 @@ public class PropertyAnalyzer {
         job.setMapperClass(Map.class);
         job.setReducerClass(Reduce.class);
 
-        job.setInputFormatClass(PageInputFormat.class);
+        job.setInputFormatClass(KeyValueTextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
         job.setNumReduceTasks(1);
@@ -63,9 +62,9 @@ public class PropertyAnalyzer {
         }
     }
 
-    private static class Map extends Mapper<Text, PageWritable, Text, NullWritable> {
+    private static class Map extends Mapper<Text, Text, Text, NullWritable> {
         @Override
-        protected void map(Text key, PageWritable value, Context context) throws IOException, InterruptedException {
+        protected void map(Text key, Text value, Context context) throws IOException, InterruptedException {
             context.write(new Text("#counter"), NullWritable.get());
         }
     }

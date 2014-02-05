@@ -42,7 +42,7 @@ public class PageOutputFormat extends FileOutputFormat<Text, PageWritable> {
             // so that leading invalid chars before the page (node) id/url could be avoided
             // transforming from text.toString() rather that text.write(dos) might result in problems
             String line = text.toString() + '\t' + String.format("%.4f", pageWritable.getRank());
-            ArrayList<Text> outLinks = pageWritable.getOutLinks();
+            ArrayList<Text> outLinks = pageWritable.getOutlinks();
             if (outLinks != null) { // sinks have no outLinks but only rank value
                 for (Text outLink : outLinks) {
                     line += ' ' + outLink.toString();
