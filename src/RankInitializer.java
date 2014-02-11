@@ -43,18 +43,14 @@ public class RankInitializer {
         job.setOutputFormatClass(PageOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(input));
-        Path outputPath = new Path(output);
-        FileOutputFormat.setOutputPath(job, outputPath);
-        FileSystem fs = FileSystem.get(outputPath.toUri(), job.getConfiguration());
-        if (fs.exists(outputPath)) {
-            fs.delete(outputPath, true);
-        }
+        FileOutputFormat.setOutputPath(job, new Path(output));
     }
 
     private static class Map extends Mapper<Text, Text, Text, PageWritable> {
         @Override
         protected void map(Text key, Text value, Context context) throws IOException, InterruptedException {
-            PageWritable page = new PageWritable(1.0/nPages, new ArrayList<Text>());
+//            PageWritable page = new PageWritable(1.0/nPages, new ArrayList<Text>());
+            PageWritable page = new PageWritable(1.0, new ArrayList<Text>());
             String[] outlinks = value.toString().split("\\s");
             for (String outlink : outlinks) {
                 page.getOutlinks().add(new Text(outlink));

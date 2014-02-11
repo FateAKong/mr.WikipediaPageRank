@@ -45,20 +45,17 @@ public class RankFinalizer {
         job.setOutputFormatClass(PageOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(input));
-        Path outputPath = new Path(output);
-        FileOutputFormat.setOutputPath(job, outputPath);
-        FileSystem fs = FileSystem.get(outputPath.toUri(), config);
-        if (fs.exists(outputPath)) {
-            fs.delete(outputPath, true);
-        }
+        FileOutputFormat.setOutputPath(job, new Path(output));
     }
 
     private static class Map extends Mapper<Text, PageWritable, Text, PageWritable> {
         @Override
         protected void map(Text key, PageWritable value, Context context) throws IOException, InterruptedException {
             // calculate rank (initialized as 1/N) for next iteration (taking sink rank into consideration)
-            double rank = (1 - DAMPING_FACTOR)/nPages + DAMPING_FACTOR * (value.getRank() + prevSinkRank/nPages);
+//            double rank = (1 - DAMPING_FACTOR)/nPages + DAMPING_FACTOR * (value.getRank() + prevSinkRank/nPages);
+            double rank = (1 - DAMPING_FACTOR) + DAMPING_FACTOR * (value.getRank() + prevSinkRank/nPages);
             context.write(key, new PageWritable(rank, value.getOutlinks()));
+
         }
     }
 

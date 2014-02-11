@@ -54,12 +54,7 @@ public class PropertyAnalyzer {
         job.setNumReduceTasks(1);
 
         FileInputFormat.addInputPath(job, new Path(input));
-        Path outputPath = new Path(output);
-        FileOutputFormat.setOutputPath(job, outputPath);
-        FileSystem fs = FileSystem.get(outputPath.toUri(), job.getConfiguration());
-        if (fs.exists(outputPath)) {
-            fs.delete(outputPath, true);
-        }
+        FileOutputFormat.setOutputPath(job, new Path(output));
     }
 
     private static class Map extends Mapper<Text, Text, Text, NullWritable> {

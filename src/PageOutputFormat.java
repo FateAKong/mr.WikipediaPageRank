@@ -20,7 +20,6 @@ public class PageOutputFormat extends FileOutputFormat<Text, PageWritable> {
 
     @Override
     public RecordWriter<Text, PageWritable> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-//        Path file = FileOutputFormat.getOutputPath(taskAttemptContext);
         Path file = getDefaultWorkFile(taskAttemptContext, "");
         FileSystem fs = file.getFileSystem(taskAttemptContext.getConfiguration());
         FSDataOutputStream dos = fs.create(file, taskAttemptContext);
@@ -38,10 +37,7 @@ public class PageOutputFormat extends FileOutputFormat<Text, PageWritable> {
         @Override
         public void write(Text text, PageWritable pageWritable) throws IOException, InterruptedException {
             if (text == null || pageWritable == null) return;
-            // add a leading dummy symbol to work around with utf-8 encoding problems
-            // so that leading invalid chars before the page (node) id/url could be avoided
-            // transforming from text.toString() rather that text.write(dos) might result in problems
-            String line = text.toString() + '\t' + String.format("%.4f", pageWritable.getRank());
+            String line = text.toString() + '\t' + String.valueOf(pageWritable.getRank());
             ArrayList<Text> outLinks = pageWritable.getOutlinks();
             if (outLinks != null) { // sinks have no outLinks but only rank value
                 for (Text outLink : outLinks) {

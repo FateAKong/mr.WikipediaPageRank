@@ -1,5 +1,6 @@
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -20,7 +21,7 @@ import java.util.HashSet;
  */
 public class OutlinkGenerator {
 
-    private Job job = null;
+    private static Job job = null;
     private static int nPages;
 
     public Job getJob() {
@@ -45,12 +46,7 @@ public class OutlinkGenerator {
         job.setOutputFormatClass(TextOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(input));
-        Path outputPath = new Path(output);
-        FileOutputFormat.setOutputPath(job, outputPath);
-        FileSystem fs = FileSystem.get(outputPath.toUri(), job.getConfiguration());
-        if (fs.exists(outputPath)) {
-            fs.delete(outputPath, true);
-        }
+        FileOutputFormat.setOutputPath(job, new Path(output));
     }
 
     private static class Map extends Mapper<Text, Text, Text, Text> {
@@ -58,7 +54,11 @@ public class OutlinkGenerator {
         protected void map(Text key, Text value, Context context) throws IOException, InterruptedException {
             String[] outlinks = value.toString().split("\\s");
             for (String outlink : outlinks) {
-                context.write(new Text(outlink), key);
+                if (outlink.equals("#non-red")) {
+                    context.write(key, new Text("#non-red"));
+                } else {
+                    context.write(new Text(outlink), key);
+                }
             }
         }
     }
@@ -70,11 +70,8 @@ public class OutlinkGenerator {
             StringBuilder output = null;
             for (Text value : values) {
                 String value_str = value.toString();
-                if (value_str.equals("#sink")) {
-                    // for pages with no real outlinks (sinks/dead-ends) it's certain that there's only one fake outlink #sink
-                    output = new StringBuilder("");
-                } else {
-                    if (output == null) {
+                if (!value_str.equals("#non-red")) {
+                    if (output==null) {
                         output = new StringBuilder(value_str);
                     } else {
                         output.append(' ');
@@ -82,7 +79,7 @@ public class OutlinkGenerator {
                     }
                 }
             }
-            context.write(key, new Text(output.toString()));
+            context.write(key, new Text(output==null? "" : output.toString()));
         }
     }
 }
